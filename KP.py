@@ -33,9 +33,9 @@ def destoy(coord,
     :param coord: коордианты ребра квадрата
     :param point_1: первая точка опасной области поражения
     :param point_2: вторая точка опасной области поражения
-    :param point_3:
-    :param point_4:
-    :return:
+    :param point_3: третья точка опасной области поражения
+    :param point_4: четвёртая точка опасной области поражения
+    :return: True - произошло попадание, False - не попали
     """
 
     i = 0
@@ -85,38 +85,41 @@ class Params:
 class Logic:
     def __init__(self,
                  radius_cp,
+                 radius_cp12,
                  radius_cable,
                  radius_rlsv,
                  radius_sc,
                  radius_eg):
         """
         инициализация параметров
-        :param radius_cp: радиусы поражения командных пунктов
+        :param radius_cp: радиус поражения командного пункта
+        :param radius_cp12: радиус поражения комнадного пункта 1 и 2
         :param radius_cable: радиусы поражения кабелей
         :param radius_rlsv: радиусы поражения РЛС и РЛВ
         :param radius_sc: радиусы поражения самоходных установок
         :param radius_eg: радиусы поражения энергогенераторов
         """
 
-        self.radius_cp = radius_cp
-        self.radius_cable = radius_cable
-        self.radius_rlsv = radius_rlsv
-        self.radius_sc = radius_sc
-        self.radius_eg = radius_eg
+        radius_cp = int(radius_cp)
+        radius_cp12 = int(radius_cp12)
+        radius_cable = float(radius_cable)
+        radius_rlsv = int(radius_rlsv)
+        radius_sc = int(radius_sc)
+        radius_eg = int(radius_eg)
 
         # расположение объектов
-        self.objects = [Params(270, 280, 25, 25, 8, radius_cp[0]),
-                        Params(420, 110, 25, 25, 15, radius_cp[1]),
-                        Params(300, 280, 25, 25, 41, radius_cp[1]),
+        self.objects = [Params(270, 280, 25, 25, 8, radius_cp),
+                        Params(420, 110, 25, 25, 15, radius_cp12),
+                        Params(300, 480, 25, 25, 41, radius_cp12),
                         Params(170, 50, 25, 25, 35, radius_rlsv),
                         Params(130, 500, 25, 25, 81, radius_rlsv),
-                        Params(480, 220, 25, 25, 0, radius_sc),
-                        Params(440, 350, 25, 25, 0, radius_sc),
+                        Params(480, 220, 25, 25, 1, radius_sc),
+                        Params(440, 350, 25, 25, 1, radius_sc),
                         Params(550, 440, 25, 25, 130, radius_sc),
-                        Params(90, 270, 25, 25, 0, radius_eg),
+                        Params(90, 270, 25, 25, 1, radius_eg),
                         Params(540, 40, 25, 25, 32, radius_eg),
                         Params(490, 530, 25, 25, 13, radius_eg),
-                        Params(0, 280, 200, 4, 0, radius_cable),
+                        Params(0, 280, 200, 4, 1, radius_cable),
                         Params(135, 280, 181, 4, -2, radius_cable),
                         Params(200, 168, 231, 4, 70, radius_cable),
                         Params(120, 400, 243, 4, -80, radius_cable),
@@ -134,6 +137,9 @@ class Logic:
         # повреждённые объекты
         self.damage_objects = []
         self.func_elem = [True for _ in range(25)]  # список состояний функциональных элементов
+
+    def return_objects(self):
+        return self.objects
 
     def danger_area_explose_area(self):
         """
@@ -159,19 +165,180 @@ class Logic:
 
             x4 = obj.x - d_x1 + d_x2
             y4 = obj.y + d_y1 + d_y2
-
-            if len(self.damage_objects) != 25:
-                # заполнение списка поражённых объектов
-                self.damage_objects.append(((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
-            else:
-                self.damage_objects.clear()
-                self.damage_objects.append(((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
+            self.damage_objects.append(((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
 
     def solve_fe(self):
+        """
+        метод для расчёта ДУКР
+        :return: dukr - дискретный уровень качества решения
+        """
 
-        f_0 = self.func_elem[1] and self.func_elem[2] and self.func_elem[6] * self.func_elem[7] and self.func_elem[8] \
-              and ((self.func_elem[18] and self.func_elem[22] and self.func_elem[23] and self.func_elem[24] and
-                    self.func_elem[25] and (not self.func_elem[19])) or ())
+        dukr = [0 for _ in range(7)]  # частота попаданий
+
+        f_0 = self.func_elem[1] and self.func_elem[2] and self.func_elem[5] * self.func_elem[6] and self.func_elem[7] \
+              and ((self.func_elem[17] and self.func_elem[21] and self.func_elem[22] and self.func_elem[23] and
+                    self.func_elem[24] and (not self.func_elem[18]))
+                   or (self.func_elem[17] and self.func_elem[21] and self.func_elem[22] and self.func_elem[23]
+                       and (not self.func_elem[24]) and self.func_elem[18])
+                   or (self.func_elem[17] and self.func_elem[21] and self.func_elem[22] and (not self.func_elem[23])
+                       and self.func_elem[24] and self.func_elem[18])
+                   or (self.func_elem[17] and self.func_elem[21] and (not self.func_elem[22]) and self.func_elem[23]
+                       and self.func_elem[24] and self.func_elem[18])
+                   or (self.func_elem[17] and (not self.func_elem[21]) and self.func_elem[22] and self.func_elem[23]
+                       and self.func_elem[24] and self.func_elem[18])
+                   or ((not self.func_elem[17]) and self.func_elem[21] and self.func_elem[22] and self.func_elem[23]
+                       and self.func_elem[24] and self.func_elem[18]))
+
+        f_1 = self.func_elem[1] and self.func_elem[2] and self.func_elem[17] and self.func_elem[18] and (
+                (self.func_elem[5] and self.func_elem[6] and self.func_elem[21] and self.func_elem[22] and
+                 ((not self.func_elem[7]) or ((self.func_elem[7]) and (not self.func_elem[23]) and (
+                     not self.func_elem[24])))) or (
+                        self.func_elem[5] and self.func_elem[7] and self.func_elem[21] and self.func_elem[24] and
+                        ((not self.func_elem[6]) or (self.func_elem[6] and (not self.func_elem[22]) and
+                                                     (not self.func_elem[23])))) or (
+                        self.func_elem[6] and self.func_elem[7] and self.func_elem[23] and self.func_elem[24] and
+                        ((not self.func_elem[5]) or (
+                                self.func_elem[5] and (not self.func_elem[21]) and (not self.func_elem[22])))))
+
+        f_2 = self.func_elem[5] and self.func_elem[22] and self.func_elem[6] and self.func_elem[23] and self.func_elem[
+            7] and ((self.func_elem[1] and self.func_elem[17] and self.func_elem[21] and (
+                (not self.func_elem[2]) or (self.func_elem[2] and
+                                            (not self.func_elem[18]) and (not self.func_elem[24])))) or (
+                            self.func_elem[2] and self.func_elem[18] and self.func_elem[24] and
+                            ((not self.func_elem[1]) or (
+                                    self.func_elem[1] and (not self.func_elem[17]) and (not self.func_elem[21])))))
+
+        f_3 = self.func_elem[1] and self.func_elem[2] and self.func_elem[17] and (
+                (self.func_elem[5] and self.func_elem[21] and (
+                        (not self.func_elem[6]) and (self.func_elem[6] and (not self.func_elem[22]))) and (
+                         (not self.func_elem[7]) or (self.func_elem[7] and (not self.func_elem[24])))) or (
+                    ((self.func_elem[7] and self.func_elem[24]) and (
+                            (not self.func_elem[5]) or (self.func_elem[5] and (not self.func_elem[21]))) and (
+                             (not self.func_elem[6]) or (self.func_elem[6] and (not self.func_elem[23]))))))
+
+        f_4 = self.func_elem[6] and (
+                (self.func_elem[1] and self.func_elem[5] and self.func_elem[17] and self.func_elem[21] and
+                 self.func_elem[22] and (
+                         (not self.func_elem[2]) or (self.func_elem[2] and (not self.func_elem[18]))) and (
+                         (not self.func_elem[7]) or (self.func_elem[7] and (not self.func_elem[23])))) or (
+                    (self.func_elem[2] and self.func_elem[7] and self.func_elem[18] and self.func_elem[23] and
+                     self.func_elem[24] and (
+                             (not self.func_elem[1]) or (self.func_elem[1] and (not self.func_elem[17]))) and (
+                             (not self.func_elem[5]) or (self.func_elem[5] and (not self.func_elem[22]))))))
+
+        f_5 = (self.func_elem[1] and self.func_elem[5] and self.func_elem[17] and self.func_elem[21] and (
+                (not self.func_elem[2]) or (self.func_elem[2] and (not self.func_elem[18]))) and (
+                       (not self.func_elem[6]) or (self.func_elem[6] and (not self.func_elem[22])))) or (
+                      self.func_elem[2] and self.func_elem[7] and self.func_elem[18] and self.func_elem[24] and (
+                      (not self.func_elem[1]) or (self.func_elem[1] and (not self.func_elem[17]))) and (
+                              (not self.func_elem[6]) or (self.func_elem[6] and (not self.func_elem[23]))))
+
+        f_6 = ((not self.func_elem[1]) or (self.func_elem[1] and (not self.func_elem[5])) or (
+                self.func_elem[1] and self.func_elem[5] and (not self.func_elem[17])) or (
+                       self.func_elem[1] and self.func_elem[5] and self.func_elem[17] and (
+                   not self.func_elem[21]))) and (
+                      (not self.func_elem[2]) or (self.func_elem[2] and (not self.func_elem[7])) or (
+                      self.func_elem[2] and self.func_elem[7] and (not self.func_elem[18])) or (
+                              self.func_elem[2] and self.func_elem[7] and self.func_elem[18] and (
+                          not self.func_elem[24])))
+
+        kp = self.func_elem[0] and self.func_elem[4] and self.func_elem[16] and (
+                (self.func_elem[11] and self.func_elem[12]) or (self.func_elem[3] and self.func_elem[15] and (
+                self.func_elem[12] or self.func_elem[13] or self.func_elem[14])))
+
+        if kp and f_0:
+            dukr[0] += 1
+        elif kp and f_1:
+            dukr[1] += 1
+        elif kp and f_2:
+            dukr[2] += 1
+        elif kp and f_3:
+            dukr[3] += 1
+        elif kp and f_4:
+            dukr[4] += 1
+        elif kp and f_5:
+            dukr[5] += 1
+        elif f_6 or (not kp):
+            dukr[6] += 1
+
+        return dukr
+
+    def calculate_figures(self, ellipse, defeat, colors):
+        """
+        метод для преобразования координат фигур для построения
+        :param ellipse: параметры элипсов рассеивания
+        :param defeat: координаты точек попадания
+        :param colors: цвета наполнения фигур
+        :return: figures - словарь фигур
+        """
+
+        rectangle = []
+        line = []
+        circle = []
+        hit = []
+
+        figures = {"rectangle": rectangle,
+                   "circle": circle,
+                   "line": line,
+                   "point": hit}
+
+        for index, info in enumerate(self.objects):
+            if index < 11:
+                x = info.x
+                y = info.y
+                width = info.width
+                length = info.length
+                angle = info.angle
+
+                # Находим координаты вершин прямоугольника относительно его центра
+                half_length = length / 2
+                half_width = width / 2
+                vertices = [
+                    (-half_length, -half_width),  # Левая нижняя вершина
+                    (half_length, -half_width),  # Правая нижняя вершина
+                    (half_length, half_width),  # Правая верхняя вершина
+                    (-half_length, half_width)  # Левая верхняя вершина
+                ]
+
+                # Применяем матрицу поворота к каждой вершине прямоугольника
+                rotated_vertices = []
+                for vertex in vertices:
+                    x_new = vertex[0] * cos(angle) - vertex[1] * sin(angle)
+                    y_new = vertex[0] * sin(angle) + vertex[1] * cos(angle)
+                    rotated_vertices.append((x + x_new, y + y_new))
+
+                rectangle.append((rotated_vertices, colors[index]))
+
+            # расчёт линий
+            else:
+                x_center = info.x
+                y_center = info.y
+                length = info.length
+                angle = info.angle
+
+                x_delta = length * cos(radians(-angle))
+                y_delta = length * sin(radians(-angle))
+
+                start_x = x_center - x_delta / 2
+                start_y = y_center - y_delta / 2
+                end_x = x_center + x_delta / 2
+                end_y = y_center + y_delta / 2
+
+                line.append(((end_x, end_y, start_x, start_y), colors[index]))
+
+        for values in ellipse:
+            x, y = values[0]  # координаты центра эллипса
+            a, b = values[1]  # ширина и высота эллипса
+
+            circle.append(((x - a / 2, y - b / 2,
+                            x + a / 2, y + b / 2)))
+
+        for point in defeat:
+            x, y = point
+            point_size = 3
+            hit.append((x - point_size, y - point_size, x + point_size, y + point_size))
+
+        return figures
 
     def damage_calculation(self,
                            range_to_traverse,
@@ -200,10 +367,28 @@ class Logic:
         :param ammunition_disp: рассеивание суббоеприпасов СП
         :param technical_disp: техническое рассеивание
         :return:
+        scat_ellipse - список координат для 4-ч эллипсов
+        boom_list - список координат точек попадания
+        color - список цветов наполнения фигур
+        discret_level - ДУКР
         """
+        range_to_traverse = int(range_to_traverse)
+        combat_route = int(combat_route)
+        interval_form = int(interval_form)
+        interval_series = int(interval_series)
+        num_implement = int(num_implement)
+        num_acp = int(num_acp)
+        target_disp = int(target_disp)
+        weapon = weapon
+        num_ammunition = int(num_ammunition)
+        ammunition_disp = int(ammunition_disp)
+        technical_disp = int(technical_disp)
 
         aim_point = list()  # список точек прицеливания
-        rbk_list = [[0, 0] for _ in range(num_ammunition)]
+        boom_list = []  # список координат точек взрывов
+        scat_ellipse = []  # список параметров элипса рассеивания
+        color = []  # список цветов (зелёный - функционирует, красный - поразили)
+        discret_level = 0  # дукр
 
         aim_point.append((350 - range_to_traverse, 300 - combat_route + interval_form))
         aim_point.append((350 - range_to_traverse + interval_series, 300 - combat_route + interval_form))
@@ -224,48 +409,90 @@ class Logic:
 
                 # идём по АСП
                 for acp in range(round(num_acp / 2)):
-                    if weapon[1] != "ОФАБ":
+                    # если не ОФАБ
+                    if "ОФАБ" not in weapon:
                         for ammunition in range(num_ammunition):
-                            rbk_list[ammunition][0] = x_zalp + np.random.uniform(-3 * ammunition_disp,
-                                                                                 3 * ammunition_disp)
-                            rbk_list[ammunition][1] = y_zalp + np.random.uniform(-ammunition_disp, ammunition_disp)
+                            x_boom = x_zalp + np.random.uniform(-3 * ammunition_disp, 3 * ammunition_disp)
+                            y_boom = y_zalp + np.random.uniform(-ammunition_disp, ammunition_disp)
 
-                            flag = True
                             # проход по каждому функциональному элементу ЗРК
                             for num_func_elem in range(len(self.func_elem)):
                                 # если боеприпас нанёс урон, то есть попал в ФЭ
-                                if destoy(rbk_list[ammunition], self.damage_objects[0], self.damage_objects[1],
+                                if destoy((x_boom, y_boom), self.damage_objects[0], self.damage_objects[1],
                                           self.damage_objects[2], self.damage_objects[3]):
                                     self.func_elem[num_func_elem] = False
-                                    flag = False
+                                    color.append("red")
+                                else:
+                                    color.append("green")
 
                             # для отрисовки только первой реализации
-                            if num_bomb == 1:
-                                pass
+                            if num_bomb == 0:
+                                boom_list.append((x_boom, y_boom))
+
+                                if (ammunition == 0) and (acp == 0):
+                                    scat_ellipse.append(
+                                        ((x_zalp, y_zalp), (ammunition_disp * 7, ammunition_disp * 2.5)))
+
                     # если ОФАБ
                     else:
                         x_fab = random.gauss(x_zalp, technical_disp)
                         y_fab = random.gauss(y_zalp, technical_disp)
-
-                        flag = True
-
+                        boom_list.append((x_fab, y_fab))
                         for num_fe in range(len(self.func_elem)):
-                            if destoy((x_fab, y_fab), self.damage_objects[0], self.damage_objects[1],
-                                      self.damage_objects[2], self.damage_objects[3]):
+                            if destoy((x_fab, y_fab), self.damage_objects[num_fe][0], self.damage_objects[num_fe][1],
+                                      self.damage_objects[num_fe][2], self.damage_objects[num_fe][3]):
                                 self.func_elem[num_fe] = False
-                                flag = False
+                                color.append("red")
+                            else:
+                                color.append("green")
 
                         # для отрисовки первой реализации
-                        if num_bomb == 1:
-                            pass
+                        if num_bomb == 0:
+
+                            if acp == 0:
+                                scat_ellipse.append(((x_zalp, y_zalp), (technical_disp * 6, technical_disp * 6)))
+
+            discret_level = self.solve_fe()
+
+        return scat_ellipse, boom_list, color, discret_level
 
 
-class Drawing(tk.Tk):
+class Draw(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Отрисовка решения")
-        self.geometry("1000x1000")
+        self.title("Пример с классами")
+        self.canvas = tk.Canvas(self, width=1000, height=1000)
+        self.canvas.pack()
+
+    def draw_figures(self, figures):
+        """
+        метод для отрисовки фигур
+        :param figures: словарь параметров фигур
+        :return:
+        """
+        for key, parameters in figures.items():
+
+            # если у нас прямоугольник
+            if key == "rectangle":
+                for param in parameters:
+                    self.canvas.create_polygon(param[0], fill=param[1])
+                    self.canvas.update()
+
+            elif key == "line":
+                for data in parameters:
+                    self.canvas.create_line(data[0], width=4, fill=data[1])
+
+            elif key == "circle":
+                for points in parameters:
+                    self.canvas.create_oval(points, outline="blue")
+
+            elif key == "point":
+                for coordinates in parameters:
+                    self.canvas.create_oval(coordinates, fill="red")
+
+    def drawing(self):
+        self.mainloop()
 
 
 class Widget:
@@ -276,6 +503,9 @@ class Widget:
 
         self.window = tk.Tk()
         self.window.title("Моделирование бомбометания")
+        self.input_data = dict()  # словарь входных данных
+        self.output = []  # список окон, куда выводится информация
+        self.draw = Draw()
 
         # список форматов окон
         self.border_effects = {
@@ -301,6 +531,9 @@ class Widget:
                                  borderwidth=5)
         self.frm_freq.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
 
+        btn_model = tk.Button(master=self.frm_freq, text="Моделирование", command=self.update_data)
+        btn_model.place(x=40, y=270)
+
     def characteristics(self):
         """
         метод для отображения характеристик рассеивания
@@ -317,14 +550,18 @@ class Widget:
         # прицельное рассеивание - ввод
         ent_aim = tk.Entry(master=self.frm_chts)
         ent_aim.place(x=220, y=20)
+        ent_aim.insert(0, "35")
+        self.input_data["прицельное рассеивание"] = ent_aim
 
         # техническое прицеливание - текст
         lbl_tech = tk.Label(master=self.frm_chts, text="Техническое рассеивание, [м]")
         lbl_tech.place(x=2, y=50)
 
         # техническое прицеливание - ввод
-        ent_aim = tk.Entry(master=self.frm_chts)
-        ent_aim.place(x=220, y=50)
+        ent_tech = tk.Entry(master=self.frm_chts)
+        ent_tech.place(x=220, y=50)
+        ent_tech.insert(0, "10")
+        self.input_data["техническое рассеивание"] = ent_tech
 
         # рассеивание суббоеприпасов - текст
         lbl_disp = tk.Label(master=self.frm_chts, text="Рассеивание суббоеприпасов, [м]")
@@ -333,6 +570,8 @@ class Widget:
         # рассеивание суббоеприпасов - ввод
         ent_disp = tk.Entry(master=self.frm_chts)
         ent_disp.place(x=220, y=80)
+        ent_disp.insert(0, "40")
+        self.input_data["рассеивание суббоеприпасов"] = ent_disp
 
     def mode_bomb(self):
         """
@@ -351,6 +590,8 @@ class Widget:
         # боевой маршрут центра пары - ввод
         ent_route = tk.Entry(master=self.frm_chts)
         ent_route.place(x=220, y=140)
+        ent_route.insert(0, "100")
+        self.input_data["боевой маршрут"] = ent_route
 
         # дальность до траверза - текст
         lbl_dist = tk.Label(master=self.frm_chts, text="Дальность до траверза КП, [м]")
@@ -359,6 +600,8 @@ class Widget:
         # дальность до траверза - ввод
         ent_dist = tk.Entry(master=self.frm_chts)
         ent_dist.place(x=220, y=170)
+        ent_dist.insert(0, "50")
+        self.input_data["дальность до траверза"] = ent_dist
 
         # интервал строя - текст
         lbl_build = tk.Label(master=self.frm_chts, text="Интервал строя, [м]")
@@ -368,6 +611,8 @@ class Widget:
         build = ["100", "200", "300", "400"]
         cbx_build = ttk.Combobox(master=self.frm_chts, values=build)
         cbx_build.place(x=220, y=200)
+        cbx_build.set("100")
+        self.input_data["интервал строя"] = cbx_build
 
         # интерал серии - текст
         lbl_series = tk.Label(master=self.frm_chts, text="Интервал серии, [м]")
@@ -376,6 +621,8 @@ class Widget:
         # интервал серии - ввод
         ent_series = tk.Entry(master=self.frm_chts)
         ent_series.place(x=220, y=230)
+        ent_series.insert(0, "150")
+        self.input_data["интервал серии"] = ent_series
 
         # высота бомбометания - текст
         lbl_height = tk.Label(master=self.frm_chts, text="Высота бомбометания, [м]")
@@ -385,6 +632,8 @@ class Widget:
         height = ["500", "1500", "3000"]
         cbx_height = ttk.Combobox(master=self.frm_chts, values=height)
         cbx_height.place(x=220, y=260)
+        cbx_height.set("1500")
+        self.input_data["высота бомбометания"] = cbx_height
 
         # количество АСП - текст
         lbl_count = tk.Label(master=self.frm_chts, text="Количество АСП, [шт]")
@@ -393,6 +642,8 @@ class Widget:
         # количество АСП - ввод
         ent_count = tk.Entry(master=self.frm_chts)
         ent_count.place(x=220, y=290)
+        ent_count.insert(0, "38")
+        self.input_data["количество АСП"] = ent_count
 
         # кодичество суббоеприпасов СП - текст
         lbl_sp = tk.Label(master=self.frm_chts, text="Количество суббоеприпасов СП, [шт]")
@@ -401,6 +652,8 @@ class Widget:
         # количество суббоеприпасов СП - ввод
         ent_sp = tk.Entry(master=self.frm_chts)
         ent_sp.place(x=220, y=320)
+        ent_sp.insert(0, "0")
+        self.input_data["количество суббоеприпасов"] = ent_sp
 
     def variants(self):
         """
@@ -413,23 +666,27 @@ class Widget:
         lbl_opt.place(x=90, y=0)
 
         # Создание переменной для отслеживания выбранного варианта
-        selected_option = tk.StringVar(value="option1")  # Установка начального значения на "option1"
+        selected_option = tk.StringVar(value="ОФАБ-100-120")  # Установка начального значения
 
         # Создание радиокнопок для каждого варианта
         option1 = tk.Radiobutton(master=self.frm_opt_rad, text="ОФАБ-100-120", variable=selected_option,
-                                 value="option1")
-        option2 = tk.Radiobutton(master=self.frm_opt_rad, text="ОФАБ-250", variable=selected_option, value="option2")
-        option3 = tk.Radiobutton(master=self.frm_opt_rad, text="РБС-Ф025-33", variable=selected_option, value="option3")
+                                 value="ОФАБ-100-120")
+        option2 = tk.Radiobutton(master=self.frm_opt_rad, text="ОФАБ-250", variable=selected_option,
+                                 value="ОФАБ-250")
+        option3 = tk.Radiobutton(master=self.frm_opt_rad, text="РБС-Ф025-33", variable=selected_option,
+                                 value="РБС-Ф025-33")
         option4 = tk.Radiobutton(master=self.frm_opt_rad, text="РБК-250-АО.25", variable=selected_option,
-                                 value="option4")
+                                 value="РБК-250-АО.25")
         option5 = tk.Radiobutton(master=self.frm_opt_rad, text="РБК-500-АО.25", variable=selected_option,
-                                 value="option5")
+                                 value="РБК-500-АО.25")
 
         option1.place(x=100, y=30)
         option2.place(x=100, y=50)
         option3.place(x=100, y=70)
         option4.place(x=100, y=90)
         option5.place(x=100, y=110)
+
+        self.input_data["варианты вооружения"] = selected_option
 
     def radius(self):
         """
@@ -448,6 +705,8 @@ class Widget:
         # радиус КП - ввод
         ent_rad_kp = tk.Entry(master=self.frm_opt_rad)
         ent_rad_kp.place(x=170, y=170)
+        ent_rad_kp.insert(0, "23")
+        self.input_data["радиус КП"] = ent_rad_kp
 
         # радиусы - текст
         lbl_rad_kp12 = tk.Label(master=self.frm_opt_rad, text="Радиус КП1, КП2, [м]")
@@ -456,6 +715,8 @@ class Widget:
         # радиусы - ввод
         ent_rad_kp12 = tk.Entry(master=self.frm_opt_rad)
         ent_rad_kp12.place(x=170, y=200)
+        ent_rad_kp12.insert(0, "23")
+        self.input_data["радиус КП 1 и 2"] = ent_rad_kp12
 
         # радиусы СУ - текст
         lbl_rad_su = tk.Label(master=self.frm_opt_rad, text="Радиус СУ1, СУ2, СУ3, [м]")
@@ -464,6 +725,8 @@ class Widget:
         # радиусы СУ - ввод
         ent_rad_su = tk.Entry(master=self.frm_opt_rad)
         ent_rad_su.place(x=170, y=230)
+        ent_rad_su.insert(0, "23")
+        self.input_data["радиус СУ"] = ent_rad_su
 
         # радиусы РЛ - текст
         lbl_rls_rlv = tk.Label(master=self.frm_opt_rad, text="Радиус РЛС, РЛВ, [м]")
@@ -472,6 +735,8 @@ class Widget:
         # радиусы РЛ - ввод
         ent_rls_rlv = tk.Entry(master=self.frm_opt_rad)
         ent_rls_rlv.place(x=170, y=260)
+        ent_rls_rlv.insert(0, "24")
+        self.input_data["радиус РЛС, РЛВ"] = ent_rls_rlv
 
         # радиусы ЭГ - текст
         lbl_eg = tk.Label(master=self.frm_opt_rad, text="Радиус ЭГ1, ЭГ2, [м]")
@@ -480,6 +745,8 @@ class Widget:
         # радиусы ЭГ - ввод
         ent_eg = tk.Entry(master=self.frm_opt_rad)
         ent_eg.place(x=170, y=290)
+        ent_eg.insert(0, "20")
+        self.input_data["радиус ЭГ"] = ent_eg
 
         # радиусы кабелей - текст
         lbl_cabel = tk.Label(master=self.frm_opt_rad, text="Радиус кабелей, [м]")
@@ -488,6 +755,8 @@ class Widget:
         # радиусы кабелей - ввод
         ent_cabel = tk.Entry(master=self.frm_opt_rad)
         ent_cabel.place(x=170, y=320)
+        ent_cabel.insert(0, "3.4")
+        self.input_data["радиус кабелей"] = ent_cabel
 
         # Количество реализаций - текст
         lbl_real = tk.Label(master=self.frm_opt_rad, text="Количество реализаций")
@@ -496,8 +765,15 @@ class Widget:
         # количество реализаций - ввод
         ent_real = tk.Entry(master=self.frm_opt_rad)
         ent_real.place(x=170, y=350)
+        ent_real.insert(0, "1")
+        self.input_data["количество реализаций"] = ent_real
 
     def frequency(self):
+        """
+        метод для отображения рамки частоты попадания по ФЭ
+        :return:
+        """
+
         # частота попадания по ФЭ
         lbl_freq = tk.Label(master=self.frm_freq, text="Частота попадания по ФЭ")
         lbl_freq.place(x=10, y=0)
@@ -544,52 +820,65 @@ class Widget:
         ent_w6 = tk.Entry(master=self.frm_freq)
         ent_w6.place(x=30, y=210)
 
-    def modeling(self):
-        btn_model = tk.Button(master=self.frm_freq, text="Моделировать")
-        btn_model.place(x=40, y=270)
+        self.output = [ent_w0, ent_w1, ent_w2, ent_w3, ent_w4, ent_w5, ent_w6]
+
+    def update_data(self):
+        """
+        метод для считывания, вычисления и вывода параметров
+        :return:
+        """
+
+        # инициализация логики
+        logic = Logic(self.input_data["радиус КП"].get(),
+                      self.input_data["радиус КП 1 и 2"].get(),
+                      self.input_data["радиус кабелей"].get(),
+                      self.input_data["радиус РЛС, РЛВ"].get(),
+                      self.input_data["радиус СУ"].get(),
+                      self.input_data["радиус ЭГ"].get())
+
+        # расчёт координат области опасных взрывов
+        logic.danger_area_explose_area()
+        ellipse, hit_points, colors, discret_levels = logic.damage_calculation(
+            self.input_data["дальность до траверза"].get(),
+            self.input_data["боевой маршрут"].get(),
+            self.input_data["интервал строя"].get(),
+            self.input_data["интервал серии"].get(),
+            self.input_data["количество реализаций"].get(),
+            self.input_data["количество АСП"].get(),
+            self.input_data[
+                "прицельное рассеивание"].get(),
+            self.input_data["варианты вооружения"].get(),
+            self.input_data[
+                "количество суббоеприпасов"].get(),
+            self.input_data[
+                "рассеивание суббоеприпасов"].get(),
+            self.input_data[
+                "техническое рассеивание"].get())
+
+        new_figures = logic.calculate_figures(ellipse, hit_points, colors)
+
+        # вывод информации
+        for index, ent in enumerate(self.output):
+            ent.delete(0, tk.END)
+            ent.insert(0, f"{discret_levels[index] * 100}%")
+
+        draw = Draw()
+
+        draw.draw_figures(new_figures)
+        draw.drawing()
+
+        return "super"
 
     def open_window(self):
         # открываем виджет
         self.characteristics()
         self.mode_bomb()
-        self.frequency()
         self.variants()
-        self.modeling()
         self.radius()
+        self.frequency()
         self.window.mainloop()
 
 
-def widget():
-    """
-    функция, для вывод окна
-    :return:
-    """
+widget = Widget()
 
-    root = tk.Tk()
-
-    # Создание списка для хранения значений из полей Entry
-    entry_values = []
-
-    # Функция для обработки нажатия кнопки
-    def get_entry_values():
-        for entry in entry_values:
-            value = entry.get()
-            print("Значение:", value)
-
-    # Создание полей Entry
-    entry1 = tk.Entry(root)
-    entry1.pack()
-    entry_values.append(entry1)
-
-    entry2 = tk.Entry(root)
-    entry2.pack()
-    entry_values.append(entry2)
-
-    # Создание кнопки для получения значений
-    button = tk.Button(root, text="Получить значения", command=get_entry_values)
-    button.pack()
-
-    root.mainloop()
-
-# window = Widget()
-# window.open_window()
+widget.open_window()
