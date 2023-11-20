@@ -115,24 +115,24 @@ class Logic:
                         Params(130, 500, 25, 25, 81, radius_rlsv),
                         Params(480, 220, 25, 25, 1, radius_sc),
                         Params(440, 350, 25, 25, 1, radius_sc),
-                        Params(550, 440, 25, 25, 130, radius_sc),
+                        Params(550, 440, 25, 25, 13, radius_sc),
                         Params(90, 270, 25, 25, 1, radius_eg),
                         Params(540, 40, 25, 25, 32, radius_eg),
                         Params(490, 530, 25, 25, 13, radius_eg),
-                        Params(0, 280, 200, 4, 1, radius_cable),
-                        Params(135, 280, 181, 4, -2, radius_cable),
-                        Params(200, 168, 231, 4, 70, radius_cable),
-                        Params(120, 400, 243, 4, -80, radius_cable),
-                        Params(220, 150, 254, 4, -66, radius_cable),
-                        Params(210, 400, 235, 4, -120, radius_cable),
-                        Params(355, 200, 219, 4, 45, radius_cable),
-                        Params(290, 400, 235, 4, -80, radius_cable),
-                        Params(480, 90, 135, 4, 26, radius_cable),
-                        Params(410, 520, 195, 4, -13, radius_cable),
-                        Params(460, 150, 127, 4, -62, radius_cable),
-                        Params(460, 300, 131, 4, -110, radius_cable),
-                        Params(500, 390, 150, 4, -42, radius_cable),
-                        Params(420, 470, 254, 4, 11, radius_cable)]
+                        Params(45, 270, 90, 4, 1, radius_cable),
+                        Params(180, 275, 180.2, 4, 3.1, radius_cable),
+                        Params(130, 160, 234, 4, -70, radius_cable),
+                        Params(110, 385, 233.4, 4, 80.1, radius_cable),
+                        Params(220, 165, 250.79, 4, 66.5, radius_cable),
+                        Params(200, 390, 260.7, 4, -57.52, radius_cable),
+                        Params(345, 195, 226.7, 4, -48.57, radius_cable),
+                        Params(285, 380, 202.2, 4, 81.46, radius_cable),
+                        Params(480, 75, 138.9, 4, -30.2, radius_cable),
+                        Params(395, 505, 196.46, 4, 14.74, radius_cable),
+                        Params(450, 165, 125.29, 4, 61.3, radius_cable),
+                        Params(460, 285, 136, 4, -72.89, radius_cable),
+                        Params(490, 395, 142.12, 4, 39.28, radius_cable),
+                        Params(425, 460, 253.17, 4, -9, radius_cable)]
 
         # повреждённые объекты
         self.damage_objects = []
@@ -147,7 +147,7 @@ class Logic:
         :return:
         """
         for obj in self.objects:
-            fi_rad = radians(obj.angle)  # перевод угла из градусов в радианы
+            fi_rad = radians(-obj.angle)  # перевод угла из градусов в радианы
             d_x1 = (obj.length / 2 + obj.radius) * cos(fi_rad)
             d_x2 = (obj.width / 2 + obj.radius) * cos(pi / 2 - fi_rad)
             d_y1 = (obj.length / 2 + obj.radius) * sin(fi_rad)
@@ -277,9 +277,9 @@ class Logic:
         circle = []
         hit = []
 
-        figures = {"rectangle": rectangle,
+        figures = {"line": line,
+                   "rectangle": rectangle,
                    "circle": circle,
-                   "line": line,
                    "point": hit}
 
         for index, info in enumerate(self.objects):
@@ -316,8 +316,8 @@ class Logic:
                 length = info.length
                 angle = info.angle
 
-                x_delta = length * cos(radians(-angle))
-                y_delta = length * sin(radians(-angle))
+                x_delta = length * cos(radians(angle))
+                y_delta = length * sin(radians(angle))
 
                 start_x = x_center - x_delta / 2
                 start_y = y_center - y_delta / 2
@@ -335,7 +335,7 @@ class Logic:
 
         for point in defeat:
             x, y = point
-            point_size = 3
+            point_size = 2
             hit.append((x - point_size, y - point_size, x + point_size, y + point_size))
 
         return figures
@@ -387,7 +387,7 @@ class Logic:
         aim_point = list()  # список точек прицеливания
         boom_list = []  # список координат точек взрывов
         scat_ellipse = []  # список параметров элипса рассеивания
-        color = []  # список цветов (зелёный - функционирует, красный - поразили)
+        color = ["green" for _ in range(25)]  # список цветов (зелёный - функционирует, красный - поразили)
         discret_level = 0  # дукр
 
         aim_point.append((350 - range_to_traverse, 300 - combat_route + interval_form))
@@ -418,12 +418,11 @@ class Logic:
                             # проход по каждому функциональному элементу ЗРК
                             for num_func_elem in range(len(self.func_elem)):
                                 # если боеприпас нанёс урон, то есть попал в ФЭ
-                                if destoy((x_boom, y_boom), self.damage_objects[0], self.damage_objects[1],
-                                          self.damage_objects[2], self.damage_objects[3]):
+                                if destoy((x_boom, y_boom), self.damage_objects[num_func_elem][0],
+                                          self.damage_objects[num_func_elem][1],
+                                          self.damage_objects[num_func_elem][2], self.damage_objects[num_func_elem][3]):
                                     self.func_elem[num_func_elem] = False
-                                    color.append("red")
-                                else:
-                                    color.append("green")
+                                    color[num_func_elem] = "red"
 
                             # для отрисовки только первой реализации
                             if num_bomb == 0:
@@ -438,13 +437,12 @@ class Logic:
                         x_fab = random.gauss(x_zalp, technical_disp)
                         y_fab = random.gauss(y_zalp, technical_disp)
                         boom_list.append((x_fab, y_fab))
+
                         for num_fe in range(len(self.func_elem)):
                             if destoy((x_fab, y_fab), self.damage_objects[num_fe][0], self.damage_objects[num_fe][1],
                                       self.damage_objects[num_fe][2], self.damage_objects[num_fe][3]):
                                 self.func_elem[num_fe] = False
-                                color.append("red")
-                            else:
-                                color.append("green")
+                                color[num_fe] = "red"
 
                         # для отрисовки первой реализации
                         if num_bomb == 0:
@@ -461,9 +459,22 @@ class Draw(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Пример с классами")
-        self.canvas = tk.Canvas(self, width=1000, height=1000)
+        self.title("Решение")
+        self.canvas = tk.Canvas(self, width=600, height=600)
         self.canvas.pack()
+
+        self.texts = {"КП": [310, 280],
+                      "КП-1": [450, 110],
+                      "КП-2": [330, 480],
+                      "РЛС": [210, 50],
+                      "РЛВ": [170, 500],
+                      "СУ-1": [510, 220],
+                      "СУ-2": [470, 350],
+                      "СУ-3": [580, 440],
+                      "ЭГ": [120, 270],
+                      "ЭГ-1": [570, 40],
+                      "ЭГ-2": [520, 530],
+                      }
 
     def draw_figures(self, figures):
         """
@@ -471,25 +482,32 @@ class Draw(tk.Tk):
         :param figures: словарь параметров фигур
         :return:
         """
+
         for key, parameters in figures.items():
 
+            # если у нас линия
+            if key == "line":
+                for data in parameters:
+                    self.canvas.create_line(data[0], width=4, fill=data[1])
+
             # если у нас прямоугольник
-            if key == "rectangle":
+            elif key == "rectangle":
                 for param in parameters:
                     self.canvas.create_polygon(param[0], fill=param[1])
                     self.canvas.update()
 
-            elif key == "line":
-                for data in parameters:
-                    self.canvas.create_line(data[0], width=4, fill=data[1])
-
+            # если у нас эллипс
             elif key == "circle":
                 for points in parameters:
                     self.canvas.create_oval(points, outline="blue")
 
+            # если у нас точка взрыва
             elif key == "point":
                 for coordinates in parameters:
                     self.canvas.create_oval(coordinates, fill="red")
+
+        for text, point in self.texts.items():
+            self.canvas.create_text(point[0], point[1], text=text, font=("Arial", 11))
 
     def drawing(self):
         self.mainloop()
@@ -506,6 +524,7 @@ class Widget:
         self.input_data = dict()  # словарь входных данных
         self.output = []  # список окон, куда выводится информация
         self.draw = Draw()
+        self.ent_weapon = dict()
 
         # список форматов окон
         self.border_effects = {
@@ -654,6 +673,91 @@ class Widget:
         ent_sp.place(x=220, y=320)
         ent_sp.insert(0, "0")
         self.input_data["количество суббоеприпасов"] = ent_sp
+        self.ent_weapon["количество суббоеприпасов"] = ent_sp
+
+    def insert_param(self, weapon):
+        """
+        метод добавления информации при выборе варианта вооружения
+        :param entry: переменная текстового поля, куда введётся новая информация
+        :param weapon: какой вид вооружения выбран
+        :return:
+        """
+
+        match weapon:
+            case "ОФАБ-100-120":
+                self.ent_weapon["радиус КП"].delete(0, tk.END)
+                self.ent_weapon["радиус КП"].insert(0, str(23))
+                self.ent_weapon["радиус КП 1 и 2"].delete(0, tk.END)
+                self.ent_weapon["радиус КП 1 и 2"].insert(0, str(23))
+                self.ent_weapon["радиус СУ"].delete(0, tk.END)
+                self.ent_weapon["радиус СУ"].insert(0, str(23))
+                self.ent_weapon["радиус РЛС, РЛВ"].delete(0, tk.END)
+                self.ent_weapon["радиус РЛС, РЛВ"].insert(0, str(24))
+                self.ent_weapon["радиус ЭГ"].delete(0, tk.END)
+                self.ent_weapon["радиус ЭГ"].insert(0, str(20))
+                self.ent_weapon["радиус кабелей"].delete(0, tk.END)
+                self.ent_weapon["радиус кабелей"].insert(0, str(3.4))
+
+            case "ОФАБ-250":
+                self.ent_weapon["радиус КП"].delete(0, tk.END)
+                self.ent_weapon["радиус КП"].insert(0, str(26))
+                self.ent_weapon["радиус КП 1 и 2"].delete(0, tk.END)
+                self.ent_weapon["радиус КП 1 и 2"].insert(0, str(26))
+                self.ent_weapon["радиус СУ"].delete(0, tk.END)
+                self.ent_weapon["радиус СУ"].insert(0, str(26))
+                self.ent_weapon["радиус РЛС, РЛВ"].delete(0, tk.END)
+                self.ent_weapon["радиус РЛС, РЛВ"].insert(0, str(27))
+                self.ent_weapon["радиус ЭГ"].delete(0, tk.END)
+                self.ent_weapon["радиус ЭГ"].insert(0, str(22))
+                self.ent_weapon["радиус кабелей"].delete(0, tk.END)
+                self.ent_weapon["радиус кабелей"].insert(0, str(4.6))
+            case "РБС-Ф025-33":
+                self.ent_weapon["радиус КП"].delete(0, tk.END)
+                self.ent_weapon["радиус КП"].insert(0, str(13))
+                self.ent_weapon["радиус КП 1 и 2"].delete(0, tk.END)
+                self.ent_weapon["радиус КП 1 и 2"].insert(0, str(13))
+                self.ent_weapon["радиус СУ"].delete(0, tk.END)
+                self.ent_weapon["радиус СУ"].insert(0, str(13))
+                self.ent_weapon["радиус РЛС, РЛВ"].delete(0, tk.END)
+                self.ent_weapon["радиус РЛС, РЛВ"].insert(0, str(14))
+                self.ent_weapon["радиус ЭГ"].delete(0, tk.END)
+                self.ent_weapon["радиус ЭГ"].insert(0, str(12))
+                self.ent_weapon["радиус кабелей"].delete(0, tk.END)
+                self.ent_weapon["радиус кабелей"].insert(0, str(2.4))
+                self.ent_weapon["количество суббоеприпасов"].delete(0, tk.END)
+                self.ent_weapon["количество суббоеприпасов"].insert(0, str(48))
+            case "РБК-250-АО.25":
+                self.ent_weapon["радиус КП"].delete(0, tk.END)
+                self.ent_weapon["радиус КП"].insert(0, str(0))
+                self.ent_weapon["радиус КП 1 и 2"].delete(0, tk.END)
+                self.ent_weapon["радиус КП 1 и 2"].insert(0, str(0))
+                self.ent_weapon["радиус СУ"].delete(0, tk.END)
+                self.ent_weapon["радиус СУ"].insert(0, str(0))
+                self.ent_weapon["радиус РЛС, РЛВ"].delete(0, tk.END)
+                self.ent_weapon["радиус РЛС, РЛВ"].insert(0, str(0))
+                self.ent_weapon["радиус ЭГ"].delete(0, tk.END)
+                self.ent_weapon["радиус ЭГ"].insert(0, str(0))
+                self.ent_weapon["радиус кабелей"].delete(0, tk.END)
+                self.ent_weapon["радиус кабелей"].insert(0, str(0.6))
+                self.ent_weapon["количество суббоеприпасов"].delete(0, tk.END)
+                self.ent_weapon["количество суббоеприпасов"].insert(0, str(52))
+            case "РБК-500-АО.25":
+                self.ent_weapon["радиус КП"].delete(0, tk.END)
+                self.ent_weapon["радиус КП"].insert(0, str(0))
+                self.ent_weapon["радиус КП 1 и 2"].delete(0, tk.END)
+                self.ent_weapon["радиус КП 1 и 2"].insert(0, str(0))
+                self.ent_weapon["радиус СУ"].delete(0, tk.END)
+                self.ent_weapon["радиус СУ"].insert(0, str(0))
+                self.ent_weapon["радиус РЛС, РЛВ"].delete(0, tk.END)
+                self.ent_weapon["радиус РЛС, РЛВ"].insert(0, str(0))
+                self.ent_weapon["радиус ЭГ"].delete(0, tk.END)
+                self.ent_weapon["радиус ЭГ"].insert(0, str(0))
+                self.ent_weapon["радиус кабелей"].delete(0, tk.END)
+                self.ent_weapon["радиус кабелей"].insert(0, str(0.6))
+                self.ent_weapon["количество суббоеприпасов"].delete(0, tk.END)
+                self.ent_weapon["количество суббоеприпасов"].insert(0, str(70))
+
+        return "good"
 
     def variants(self):
         """
@@ -670,15 +774,15 @@ class Widget:
 
         # Создание радиокнопок для каждого варианта
         option1 = tk.Radiobutton(master=self.frm_opt_rad, text="ОФАБ-100-120", variable=selected_option,
-                                 value="ОФАБ-100-120")
+                                 value="ОФАБ-100-120", command=lambda: self.insert_param("ОФАБ-100-120"))
         option2 = tk.Radiobutton(master=self.frm_opt_rad, text="ОФАБ-250", variable=selected_option,
-                                 value="ОФАБ-250")
+                                 value="ОФАБ-250", command=lambda: self.insert_param("ОФАБ-250"))
         option3 = tk.Radiobutton(master=self.frm_opt_rad, text="РБС-Ф025-33", variable=selected_option,
-                                 value="РБС-Ф025-33")
+                                 value="РБС-Ф025-33", command=lambda: self.insert_param("РБС-Ф025-33"))
         option4 = tk.Radiobutton(master=self.frm_opt_rad, text="РБК-250-АО.25", variable=selected_option,
-                                 value="РБК-250-АО.25")
+                                 value="РБК-250-АО.25", command=lambda: self.insert_param("РБК-250-АО.25"))
         option5 = tk.Radiobutton(master=self.frm_opt_rad, text="РБК-500-АО.25", variable=selected_option,
-                                 value="РБК-500-АО.25")
+                                 value="РБК-500-АО.25", command=lambda: self.insert_param("РБК-500-АО.25"))
 
         option1.place(x=100, y=30)
         option2.place(x=100, y=50)
@@ -707,6 +811,7 @@ class Widget:
         ent_rad_kp.place(x=170, y=170)
         ent_rad_kp.insert(0, "23")
         self.input_data["радиус КП"] = ent_rad_kp
+        self.ent_weapon["радиус КП"] = ent_rad_kp
 
         # радиусы - текст
         lbl_rad_kp12 = tk.Label(master=self.frm_opt_rad, text="Радиус КП1, КП2, [м]")
@@ -717,6 +822,7 @@ class Widget:
         ent_rad_kp12.place(x=170, y=200)
         ent_rad_kp12.insert(0, "23")
         self.input_data["радиус КП 1 и 2"] = ent_rad_kp12
+        self.ent_weapon["радиус КП 1 и 2"] = ent_rad_kp12
 
         # радиусы СУ - текст
         lbl_rad_su = tk.Label(master=self.frm_opt_rad, text="Радиус СУ1, СУ2, СУ3, [м]")
@@ -727,6 +833,7 @@ class Widget:
         ent_rad_su.place(x=170, y=230)
         ent_rad_su.insert(0, "23")
         self.input_data["радиус СУ"] = ent_rad_su
+        self.ent_weapon["радиус СУ"] = ent_rad_su
 
         # радиусы РЛ - текст
         lbl_rls_rlv = tk.Label(master=self.frm_opt_rad, text="Радиус РЛС, РЛВ, [м]")
@@ -737,6 +844,7 @@ class Widget:
         ent_rls_rlv.place(x=170, y=260)
         ent_rls_rlv.insert(0, "24")
         self.input_data["радиус РЛС, РЛВ"] = ent_rls_rlv
+        self.ent_weapon["радиус РЛС, РЛВ"] = ent_rls_rlv
 
         # радиусы ЭГ - текст
         lbl_eg = tk.Label(master=self.frm_opt_rad, text="Радиус ЭГ1, ЭГ2, [м]")
@@ -747,6 +855,7 @@ class Widget:
         ent_eg.place(x=170, y=290)
         ent_eg.insert(0, "20")
         self.input_data["радиус ЭГ"] = ent_eg
+        self.ent_weapon["радиус ЭГ"] = ent_eg
 
         # радиусы кабелей - текст
         lbl_cabel = tk.Label(master=self.frm_opt_rad, text="Радиус кабелей, [м]")
@@ -757,6 +866,7 @@ class Widget:
         ent_cabel.place(x=170, y=320)
         ent_cabel.insert(0, "3.4")
         self.input_data["радиус кабелей"] = ent_cabel
+        self.ent_weapon["радиус кабелей"] = ent_cabel
 
         # Количество реализаций - текст
         lbl_real = tk.Label(master=self.frm_opt_rad, text="Количество реализаций")
