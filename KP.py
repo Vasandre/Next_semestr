@@ -136,7 +136,32 @@ class Logic:
 
         # повреждённые объекты
         self.damage_objects = []
-        self.func_elem = [True for _ in range(25)]  # список состояний функциональных элементов
+        # список состояний функциональных элементов
+        self.func_elem = [True,
+                          True,  # 2
+                          True,  # 3
+                          True,
+                          True,
+                          True,  # 6
+                          True,  # 7
+                          True,  # 8
+                          True,
+                          True,
+                          True,
+                          True,
+                          True,
+                          True,
+                          True,
+                          True,
+                          True,
+                          True,  # 18
+                          True,  # 19
+                          True,
+                          True,
+                          True,  # 22
+                          True,  # 23
+                          True,  # 24
+                          True]  # 25
 
     def return_objects(self):
         return self.objects
@@ -175,9 +200,11 @@ class Logic:
 
         dukr = [0 for _ in range(7)]  # частота попаданий
 
-        f_0 = self.func_elem[1] and self.func_elem[2] and self.func_elem[5] * self.func_elem[6] and self.func_elem[7] \
+        f_0 = self.func_elem[1] and self.func_elem[2] and self.func_elem[5] and self.func_elem[6] and self.func_elem[7] \
               and ((self.func_elem[17] and self.func_elem[21] and self.func_elem[22] and self.func_elem[23] and
-                    self.func_elem[24] and (not self.func_elem[18]))
+                    self.func_elem[24] and self.func_elem[18])
+                   or (self.func_elem[17] and self.func_elem[21] and self.func_elem[22] and self.func_elem[23]
+                           and self.func_elem[24] and (not self.func_elem[18]))
                    or (self.func_elem[17] and self.func_elem[21] and self.func_elem[22] and self.func_elem[23]
                        and (not self.func_elem[24]) and self.func_elem[18])
                    or (self.func_elem[17] and self.func_elem[21] and self.func_elem[22] and (not self.func_elem[23])
@@ -208,9 +235,9 @@ class Logic:
                             ((not self.func_elem[1]) or (
                                     self.func_elem[1] and (not self.func_elem[17]) and (not self.func_elem[21])))))
 
-        f_3 = self.func_elem[1] and self.func_elem[2] and self.func_elem[17] and (
+        f_3 = self.func_elem[1] and self.func_elem[2] and self.func_elem[17] and self.func_elem[18] and (
                 (self.func_elem[5] and self.func_elem[21] and (
-                        (not self.func_elem[6]) and (self.func_elem[6] and (not self.func_elem[22]))) and (
+                        (not self.func_elem[6]) or (self.func_elem[6] and (not self.func_elem[22]))) and (
                          (not self.func_elem[7]) or (self.func_elem[7] and (not self.func_elem[24])))) or (
                     ((self.func_elem[7] and self.func_elem[24]) and (
                             (not self.func_elem[5]) or (self.func_elem[5] and (not self.func_elem[21]))) and (
@@ -242,7 +269,7 @@ class Logic:
                               self.func_elem[2] and self.func_elem[7] and self.func_elem[18] and (
                           not self.func_elem[24])))
 
-        kp = self.func_elem[0] and self.func_elem[4] and self.func_elem[16] and (
+        kp = self.func_elem[0] and self.func_elem[4] and self.func_elem[8] and self.func_elem[16] and (
                 (self.func_elem[11] and self.func_elem[12]) or (self.func_elem[3] and self.func_elem[15] and (
                 self.func_elem[12] or self.func_elem[13] or self.func_elem[14])))
 
@@ -399,7 +426,8 @@ class Logic:
         for num_bomb in range(num_implement):
             # формируем список состояний элементов ЗРК
             for elem in range(25):
-                self.func_elem[elem] = True
+                pass
+                # self.func_elem[elem] = True
 
             # перебор 4-х залпов
             for num_area in range(4):
@@ -421,8 +449,9 @@ class Logic:
                                 if destoy((x_boom, y_boom), self.damage_objects[num_func_elem][0],
                                           self.damage_objects[num_func_elem][1],
                                           self.damage_objects[num_func_elem][2], self.damage_objects[num_func_elem][3]):
-                                    self.func_elem[num_func_elem] = False
-                                    color[num_func_elem] = "red"
+                                    pass
+                                    # self.func_elem[num_func_elem] = False
+                                    # color[num_func_elem] = "red"
 
                             # для отрисовки только первой реализации
                             if num_bomb == 0:
@@ -441,14 +470,19 @@ class Logic:
                         for num_fe in range(len(self.func_elem)):
                             if destoy((x_fab, y_fab), self.damage_objects[num_fe][0], self.damage_objects[num_fe][1],
                                       self.damage_objects[num_fe][2], self.damage_objects[num_fe][3]):
-                                self.func_elem[num_fe] = False
-                                color[num_fe] = "red"
+                                pass
+                                # self.func_elem[num_fe] = False
+                                # color[num_fe] = "red"
 
                         # для отрисовки первой реализации
                         if num_bomb == 0:
 
                             if acp == 0:
                                 scat_ellipse.append(((x_zalp, y_zalp), (technical_disp * 6, technical_disp * 6)))
+
+            for fe in range(len(self.func_elem)):
+                if self.func_elem[fe] == False:
+                    color[fe] = "red"
 
             discret_level = self.solve_fe()
 
